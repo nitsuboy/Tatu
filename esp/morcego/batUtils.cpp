@@ -87,8 +87,8 @@ void readMPU(uint8_t mpu_addr, float* Angle) {
 	GyY = Wire.read() << 8 | Wire.read();
 	GyZ = Wire.read() << 8 | Wire.read();
 
-	A[1] = atan(-1 * (AcX / A_R) / sqrt(pow((AcY / A_R), 2) + pow((AcZ / A_R), 2))) * RAD_TO_DEG;
-	A[0] = atan((AcY / A_R) / sqrt(pow((AcX / A_R), 2) + pow((AcZ / A_R), 2))) * RAD_TO_DEG;
+	An[0] = AcX / A_R;
+	An[1] = AcY / A_R;
 
 	G[0] = GyX / G_R;
 	G[1] = GyY / G_R;
@@ -96,10 +96,6 @@ void readMPU(uint8_t mpu_addr, float* Angle) {
 
 	dt = (millis() - tiempo_prev) / 1000.0;
 	tiempo_prev = millis();
-
-	//Aplicar el Filtro Complementario
-	An[0] = 0.98 * (An[0] + G[0] * dt) + 0.02 * A[0];
-	An[1] = 0.98 * (An[1] + G[1] * dt) + 0.02 * A[1];
 
 	//Integración respecto del tiempo paras calcular el YAW
 	An[2] = (An[2] + G[2] * dt) - .0061;
