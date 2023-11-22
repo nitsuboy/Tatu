@@ -14,7 +14,10 @@ dt = 0
 
 
 raio = 100
-d1, d2, d3, d4, gx, gy, gz = 0,0,0,0,0,0,0
+
+
+lG =[0,0,0]
+G=[0,0,0]
 
 player_pos = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
 incli = pg.Rect(player_pos.x-100,player_pos.y,200,100)
@@ -23,7 +26,7 @@ incli = pg.Rect(player_pos.x-100,player_pos.y,200,100)
 def receive_data():
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.settimeout(0.01)
-        server_address = ('0.0.0.0', 2000)
+        server_address = ('192.168.4.2', 2000)
         sock.bind(server_address)
 
         try:
@@ -32,8 +35,10 @@ def receive_data():
             print(data)
 
             d1, d2, d3, d4, gx, gy, gz = struct.unpack('<iiiiddd', data)
+            return [gx,gy,gz]
         except:
-            pass
+            return lG
+            
 
 
 
@@ -66,15 +71,18 @@ while running:
     
     keys = pg.key.get_pressed()
     if keys[pg.K_w]:
-        gy -= .5 * dt
+        G[1] -= .5 * dt
     if keys[pg.K_s]:
-        gy += .5 * dt
+        G[1] += .5 * dt
     if keys[pg.K_a]:
-        gx -= .5 * dt
+        G[0] -= .5 * dt
     if keys[pg.K_d]:
-        gx += .5 * dt
+        G[0] += .5 * dt
+
+    G = receive_data()
+    lG = G
     
-    points = [(player_pos.x-(raio*math.cos(gx)),(player_pos.y-(raio*math.sin(gx)))+gy*40),(player_pos.x+(raio*math.cos(gx)),(player_pos.y+(raio*math.sin(gx)))+gy*40),(player_pos.x-(raio*math.sin(gx)),player_pos.y+(raio*math.cos(gx)))]
+    points = [(player_pos.x-(raio*math.cos(G[0])),(player_pos.y-(raio*math.sin(G[0])))+G[1]*40),(player_pos.x+(raio*math.cos(G[0])),(player_pos.y+(raio*math.sin(G[0])))+G[1]*40),(player_pos.x-(raio*math.sin(G[0])),player_pos.y+(raio*math.cos(G[0])))]
 
     screen.fill("purple")
     
@@ -83,7 +91,7 @@ while running:
     anims.draw(screen)
     anims.update()
 
-    receive_data()
+    
 
     pg.display.flip()
 
