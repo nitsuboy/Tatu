@@ -1,35 +1,45 @@
 import socket
 import struct
-import threading
 import pygame as pg
 import math
 
 pg.init()
 
-FONT_SIZE = 24
-PADDING = 10
-
 screen = pg.display.set_mode((1280, 720))
+font = pg.font.Font(None, 34)
 clock = pg.time.Clock()
 running = True
 dt = 0
 
-raio = 100
-font = pg.font.Font(None, FONT_SIZE)
+raio = 200
 
-lG =[0,0,0,0,0,0,0]
-G=[0,0,0,0,0,0,0]
+LD = [0,0,0,0,0,0,0]
+D  = [0,0,0,0,0,0,0]
 
-player_pos = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
-incli = pg.Rect(player_pos.x-100,player_pos.y,200,100)
+gyro_pos = pg.Vector2(200, 200)
 
-def draw_text(text, y, x=PADDING):
+class HoleSprite( pg.sprite.Sprite ):
+    def __init__( self ):
+        pg.sprite.Sprite.__init__( self )
+        self.hole_image = pg.Surface( ( raio*2, raio*2 ), pg.SRCALPHA )
+        self.hole_image.fill("purple")
+        pg.draw.circle(self.hole_image, (0, 0, 0, 0), (raio,raio), raio/2)
+        self.image  = self.hole_image
+        self.rect   = self.image.get_rect()
+        self.rect.x = gyro_pos.x  - raio # centred
+        self.rect.y = gyro_pos.y  - raio
+        self.last   = 0
+
+    def update( self ):
+        self.image = self.hole_image
+
+def draw_text(text, x, y):
     surface = font.render(text, True, (255, 255, 255))
     screen.blit(surface, (x, y))
 
 def receive_data():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(2)
+    sock.settimeout(0.01)
     server_address = ('0.0.0.0', 2000)
     sock.bind(server_address)
 
@@ -38,22 +48,7 @@ def receive_data():
         d1, d2, d3, d4, gx, gy, gz = struct.unpack('<iiiiddd', data)
         return [d1, d2, d3, d4,gx,gy,gz]
     except:
-        return lG
-
-class HoleSprite( pg.sprite.Sprite ):
-    def __init__( self ):
-        pg.sprite.Sprite.__init__( self )
-        self.hole_image = pg.Surface( ( 200, 200 ), pg.SRCALPHA )
-        self.hole_image.fill( ( 255,255,255 ) )
-        pg.draw.circle(self.hole_image, (0, 0, 0, 0), (100,100), 40)
-        self.image  = self.hole_image
-        self.rect   = self.image.get_rect()
-        self.rect.x = player_pos.x  - 100 # centred
-        self.rect.y = player_pos.y  - 100
-        self.last   = 0
-
-    def update( self ):
-        self.image = self.hole_image
+        return LD
 
 anims = pg.sprite.GroupSingle()
 holey = HoleSprite()
@@ -66,38 +61,37 @@ while running:
 
     keys = pg.key.get_pressed()
     if keys[pg.K_w]:
-        G[1] -= .5 * dt
+        D[5] -= .5 * dt
     if keys[pg.K_s]:
-        G[1] += .5 * dt
+        D[5] += .5 * dt
     if keys[pg.K_a]:
-        G[0] -= .5 * dt
+        D[4] -= .5 * dt
     if keys[pg.K_d]:
-        G[0] += .5 * dt
+        D[4] += .5 * dt
+    if keys[pg.K_e]:
+        D[6] += 1 * dt
+    if keys[pg.K_q]:
+        D[6] += 1 * dt
 
-    S = [0, 0, 0, 0]
-    data = receive_data()
-    if len(data) >= 7: 
-        G = data[4:]
-        S = data[:4]
-        lG = G
+    D = receive_data()
+    LD = D
 
-    points = [(player_pos.x-(raio*math.cos(G[0])),(player_pos.y-(raio*math.sin(G[0])))+G[1]*40),
-              (player_pos.x+(raio*math.cos(G[0])),(player_pos.y+(raio*math.sin(G[0])))+G[1]*40),
-              (player_pos.x-(raio*math.sin(G[0])),player_pos.y+(raio*math.cos(G[0])))]
+    points = [(gyro_pos.x-(raio*math.cos(D[4]*1.57)),(gyro_pos.y-(raio*math.sin(D[4]*1.57)))+D[5]*raio/2),
+              (gyro_pos.x+(raio*math.cos(D[4]*1.57)),(gyro_pos.y+(raio*math.sin(D[4]*1.57)))+D[5]*raio/2),
+              (gyro_pos.x-(raio*math.sin(D[4]*1.57)),gyro_pos.y+(raio*math.cos(D[4]*1.57)))]
 
     screen.fill("purple")
-    pg.draw.circle(screen, "red", player_pos, 40)
+    pg.draw.circle(screen, "red", gyro_pos, raio)
     pg.draw.polygon(screen, "blue", points)
     anims.draw(screen)
     anims.update()
 
-    horizontal_padding = 200
+    for i,v in enumerate(D[:4]):
+        draw_text('Sensor {}: {:0>5.1f}'.format(i + 1, v),10,500 + (i*30))
+    
+    for i,v in enumerate(D[4:]):
+        draw_text('Giroscopio {}: {:.2f}'.format(i + 1, v),200,500 + (i*30))
 
-    for i, value in enumerate(S):
-      draw_text('Sensor {}: {}'.format(i + 1, value), 2 * FONT_SIZE * i + PADDING)
-
-    for i, value in enumerate(G):
-        draw_text('Giroscopio {}: {}'.format(i + 1, value), 2 * FONT_SIZE * i + PADDING, x=horizontal_padding)
     pg.display.flip()
     dt = clock.tick(60) / 1000
 
