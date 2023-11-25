@@ -11,6 +11,10 @@ clock = pg.time.Clock()
 running = True
 dt = 0
 
+SENSOR_DISPLAY_SIZE = (200, 200)
+SENSOR_DISPLAY_POS = (screen.get_width() - SENSOR_DISPLAY_SIZE[0] - 10, 10)
+SENSOR_DISPLAY = pg.Surface(SENSOR_DISPLAY_SIZE)
+
 raio = 200
 
 LD = [0,0,0,0,0,0,0]
@@ -36,6 +40,23 @@ class HoleSprite( pg.sprite.Sprite ):
 def draw_text(text, x, y):
     surface = font.render(text, True, (255, 255, 255))
     screen.blit(surface, (x, y))
+
+def draw_sensor_data(S):
+    # Limpa o display do sensor
+    SENSOR_DISPLAY.fill("white")
+
+    # Normaliza os valores dos sensores para o intervalo de 0 a 1, garantindo que eles estão dentro do alcance esperado
+    normalized_values = [min(1, max(0, s / 400)) if s != 2147483647 else 0 for s in S] #Muda isso daqui tbm
+
+    # Define as direções para cada sensor (cima, baixo, esquerda, direita)
+    directions = [pg.Vector2(0, -1), pg.Vector2(0, 1), pg.Vector2(-1, 0), pg.Vector2(1, 0)]
+
+    # Calcula a posição dos pontos na tela com base nos valores normalizados e nas direções dos sensores
+    points = [pg.Vector2(SENSOR_DISPLAY_SIZE) / 2 + SENSOR_DISPLAY_SIZE[0] / 2 * value * direction for value, direction in zip(normalized_values, directions)]
+
+    # Desenha um ponto para cada sensor
+    for point in points:
+        pg.draw.circle(SENSOR_DISPLAY, "green", (int(point.x), int(point.y)), 4)
 
 def receive_data():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -91,6 +112,10 @@ while running:
     
     for i,v in enumerate(D[4:]):
         draw_text('Giroscopio {}: {:.2f}'.format(i + 1, v),200,500 + (i*30))
+
+    S = [100, 200, 300, 400] #Colocar so os valores que vao vir dos sensores
+    draw_sensor_data(S)
+    screen.blit(SENSOR_DISPLAY, SENSOR_DISPLAY_POS)
 
     pg.display.flip()
     dt = clock.tick(60) / 1000
