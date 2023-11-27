@@ -8,16 +8,17 @@ import math
 pg.init()
 
 screen = pg.display.set_mode((1280, 720))
-font = pg.font.Font(None, 34)
+font = pg.font.Font(None, 50)
+
 clock = pg.time.Clock()
 running = True
 
 dt = 0
-raio = 200
+raio = 250
 zoom = 1
 
-SENSOR_DISPLAY_SIZE = (500, 500)
-SENSOR_DISPLAY_POS = (650, 360 - (SENSOR_DISPLAY_SIZE[0]/2))
+SENSOR_DISPLAY_SIZE = (450, 450)
+SENSOR_DISPLAY_POS = (100, 380 - (SENSOR_DISPLAY_SIZE[0]/2))
 SENSOR_DISPLAY = pg.Surface(SENSOR_DISPLAY_SIZE)
 
 LD = [50,0,0,0,0,0,0]
@@ -26,13 +27,13 @@ D  = [50,0,0,0,0,0,0]
 distancias = np.array([])
 graus = np.array([])
 
-gyro_pos = pg.Vector2(250, 200)
+gyro_pos = pg.Vector2(920, 300)
 
 class HoleSprite( pg.sprite.Sprite ):
     def __init__( self ):
         pg.sprite.Sprite.__init__( self )
         self.hole_image = pg.Surface( ( raio*2, raio*2 ), pg.SRCALPHA )
-        self.hole_image.fill("purple")
+        self.hole_image.fill((79,79,79))
         pg.draw.circle(self.hole_image, (0, 0, 0, 0), (raio,raio), raio/2)
         self.image  = self.hole_image
         self.rect   = self.image.get_rect()
@@ -46,7 +47,7 @@ class HoleSprite( pg.sprite.Sprite ):
 def draw_sensor_data():
     SENSOR_DISPLAY.fill("white")
     for i in range(0, graus.size):
-        pg.draw.circle(SENSOR_DISPLAY, "green", (SENSOR_DISPLAY_SIZE[0]/2 + (distancias[i]*math.sin(graus[i]*.017)*zoom),
+        pg.draw.circle(SENSOR_DISPLAY, "red", (SENSOR_DISPLAY_SIZE[0]/2 + (distancias[i]*math.sin(graus[i]*.017)*zoom),
                                                  SENSOR_DISPLAY_SIZE[1]/2 + (distancias[i]*math.cos(graus[i]*.017)*zoom)), 4)
 
 def draw_text(text, x, y):
@@ -106,17 +107,20 @@ while running:
               (gyro_pos.x+(raio*math.cos(D[4]*1.57)),(gyro_pos.y+(raio*math.sin(D[4]*1.57)))+D[5]*raio/2),
               (gyro_pos.x-(raio*math.sin(D[4]*1.57)),gyro_pos.y+(raio*math.cos(D[4]*1.57)))]
 
-    screen.fill("purple")
-    pg.draw.circle(screen, "red", gyro_pos, raio)
-    pg.draw.polygon(screen, "blue", points)
+    screen.fill((79,79,79))  
+    pg.draw.circle(screen, (114, 188, 212), gyro_pos, raio)  # Cor do círculo vermelho
+    pg.draw.polygon(screen, (165, 104, 42), points)  # Cor do polígono azul
     anims.draw(screen)
-    anims.update()
 
     for i,v in enumerate(D[:4]):
-        draw_text('Sensor {}: {:0>5.1f}'.format(i + 1, v),60,500 + (i*30))
+        draw_text('Sensor {}: {:0>5.1f}'.format(i + 1, v),620,500 + (i*40))
     
     for i,v in enumerate(D[4:]):
-        draw_text('Giroscopio {}: {:.2f}'.format(i + 1, v),250,500 + (i*30))
+        draw_text('Giroscopio {}: {:.2f}'.format(i + 1, v),900,510 + (i*40))
+
+    draw_text('Horizonte de Eventos'.format(i + 1, v), 740, 100)
+
+    draw_text('Mapa'.format(i + 1, v), 270, 80)
 
     draw_sensor_data()
     screen.blit(SENSOR_DISPLAY, SENSOR_DISPLAY_POS)
