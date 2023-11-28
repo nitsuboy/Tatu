@@ -98,21 +98,33 @@ void readMPU(uint8_t mpu_addr, float* Angle) {
 	tiempo_prev = millis();
 
 	//Integración respecto del tiempo paras calcular el YAW
-	An[2] = (An[2] + G[2] * dt) - .0061;
+	An[2] = fixangle((An[2] + G[2] * dt) - .0063);
 
 	memcpy(Angle, An, sizeof(An));
-	
-	Serial.print(An[0]);
-	Serial.print(" ");
-	Serial.print(An[1]);
-	Serial.print(" ");
-	Serial.print(An[2]);
-	Serial.println(" ");
 
-	delay(10);	
-
-
-	
-
+	delay(10);
 }
 
+float fixangle(float agl) {
+	if (agl > 360) {
+		return agl - 360.0;
+	}
+	if (agl < 0) {
+		return agl + 360.0;
+	}
+	return agl;
+}
+
+int readUS(int pingPin, int echoPin) {
+	int d;
+	pinMode(pingPin, OUTPUT);
+	digitalWrite(pingPin, LOW);
+	delayMicroseconds(2);
+	digitalWrite(pingPin, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(pingPin, LOW);
+	pinMode(echoPin, INPUT);
+	d = pulseIn(echoPin, HIGH,230000) / 29 / 2;
+	delay(50);
+	return d;
+}

@@ -28,6 +28,8 @@ IPAddress cl;
 const uint8_t mpu_addr = 0x68;
 const int sda_pin = D2;
 const int scl_pin = D1;
+const int pingPin = D6;
+const int echoPin = D7;
 
 float Angle[3];
 
@@ -53,7 +55,8 @@ void setup()
 void loop()
 {
     readMPU(mpu_addr,Angle);
-    mydata = { 1,1,1,1, Angle[0], Angle[1], Angle[2] };
+    readUS(pingPin, echoPin);
+    mydata = { readUS(pingPin, echoPin),1,1,1, Angle[0], Angle[1], Angle[2] };
     int packetSize = Udp.parsePacket();
 
     if (connOn) {
@@ -61,7 +64,7 @@ void loop()
         if (packetSize) {
             Serial.printf("Recevied packet from %s:%d\n",
                 Udp.remoteIP().toString().c_str(), Udp.remotePort());
-            int n = Udp.read(packetBuffer, 255);
+            int n = Udp.read(packetBuffer, 255); 
             packetBuffer[n] = 0;
             Serial.println("Conteudo : ");
             Serial.println(packetBuffer);
