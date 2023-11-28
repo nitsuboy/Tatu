@@ -6,28 +6,29 @@ import math
 
 
 pg.init()
+pg.display.set_caption('Morcego')
 
 screen = pg.display.set_mode((1280, 720))
-font = pg.font.Font(None, 50)
+font = pg.font.Font(None, 40)
 
 clock = pg.time.Clock()
 running = True
 
 dt = 0
-raio = 250
+raio = 200
 zoom = 1
 
-SENSOR_DISPLAY_SIZE = (450, 450)
-SENSOR_DISPLAY_POS = (100, 380 - (SENSOR_DISPLAY_SIZE[0]/2))
-SENSOR_DISPLAY = pg.Surface(SENSOR_DISPLAY_SIZE)
+mapa_size = 550
+mapa_pos = pg.Vector2(650,360 - (mapa_size/2))
+mapa_suface = pg.Surface((mapa_size,mapa_size))
 
-LD = [50,0,0,0,0,0,0]
-D  = [50,0,0,0,0,0,0]
+gyro_pos = pg.Vector2(300, 200)
+
+LD = [0,0,0,0,0,0,0]
+D  = [0,0,0,0,0,0,0]
 
 distancias = np.array([])
 graus = np.array([])
-
-gyro_pos = pg.Vector2(920, 300)
 
 class HoleSprite( pg.sprite.Sprite ):
     def __init__( self ):
@@ -44,11 +45,12 @@ class HoleSprite( pg.sprite.Sprite ):
     def update( self ):
         self.image = self.hole_image
 
-def draw_sensor_data():
-    SENSOR_DISPLAY.fill("white")
+def draw_mapa():
+    mapa_suface.fill("white")
     for i in range(0, graus.size):
-        pg.draw.circle(SENSOR_DISPLAY, "red", (SENSOR_DISPLAY_SIZE[0]/2 + (distancias[i]*math.sin(graus[i]*.017)*zoom),
-                                                 SENSOR_DISPLAY_SIZE[1]/2 + (distancias[i]*math.cos(graus[i]*.017)*zoom)), 4)
+        pg.draw.circle(mapa_suface, "red", (mapa_size/2 + (distancias[i]*math.sin(graus[i]*.017)*zoom),
+                                            mapa_size/2 + (distancias[i]*math.cos(graus[i]*.017)*zoom)), 4)
+    screen.blit(mapa_suface, mapa_pos)
 
 def draw_text(text, x, y):
     surface = font.render(text, True, (255, 255, 255))
@@ -65,7 +67,7 @@ def receive_data():
         d1, d2, d3, d4, gx, gy, gz = struct.unpack('<iiiiddd', data)
         return [d1, d2, d3, d4,gx,gy,gz]
     except:
-        return LD
+        return ["e", "e", "e", "e",LD[4],LD[5],"e"]
 
 anims = pg.sprite.GroupSingle()
 holey = HoleSprite()
@@ -77,31 +79,27 @@ while running:
             running = False
 
     keys = pg.key.get_pressed()
-    if keys[pg.K_w]:
-        D[5] -= .5 * dt
-    if keys[pg.K_s]:
-        D[5] += .5 * dt
-    if keys[pg.K_a]:
-        D[4] -= .5 * dt
-    if keys[pg.K_d]:
-        D[4] += .5 * dt
-    if keys[pg.K_e]:
-        D[6] -= 10 * dt
-    if keys[pg.K_q]:
-        D[6] += 10 * dt
     if keys[pg.K_i]:
         zoom += 10 * dt
     if keys[pg.K_o]:
         zoom -= 10 * dt
+    if keys[pg.K_r]:
+        if type(D[6]) != str:
+            distancias = np.array([D[0]])
+            graus = np.array([D[6]])
+        else:
+            distancias = np.array([0])
+            graus = np.array([0])
 
     D = receive_data()
     LD = D
 
-    if int(D[6]) not in graus:
-        graus = np.append(graus,int(D[6]))
-        distancias = np.append(distancias,int(D[0]))
-        print(graus)
-        print(distancias)
+    if type(D[6]) != str:
+        if int(D[6]) not in graus:
+            graus = np.append(graus,int(D[6]))
+            distancias = np.append(distancias,int(D[0]))
+            print(graus)
+            print(distancias)
 
     points = [(gyro_pos.x-(raio*math.cos(D[4]*1.57)),(gyro_pos.y-(raio*math.sin(D[4]*1.57)))+D[5]*raio/2),
               (gyro_pos.x+(raio*math.cos(D[4]*1.57)),(gyro_pos.y+(raio*math.sin(D[4]*1.57)))+D[5]*raio/2),
@@ -113,17 +111,18 @@ while running:
     anims.draw(screen)
 
     for i,v in enumerate(D[:4]):
-        draw_text('Sensor {}: {:0>5.1f}'.format(i + 1, v),620,500 + (i*40))
+        if type(v) == str:
+            draw_text('US {}: '.format(i + 1) + v,90,400 + (i*40))
+        else:
+            draw_text('US {}: {:0>3}'.format(i + 1, v),90,400 + (i*40))
     
     for i,v in enumerate(D[4:]):
-        draw_text('Giroscopio {}: {:.2f}'.format(i + 1, v),900,510 + (i*40))
+        if type(v) == str:
+            draw_text('Acelerometro {}: '.format(i + 1) + v,250,400 + (i*40))
+        else:
+            draw_text('Acelerometro {}: {:.2f}'.format(i + 1, v),250,400 + (i*40))
 
-    draw_text('Horizonte de Eventos'.format(i + 1, v), 740, 100)
-
-    draw_text('Mapa'.format(i + 1, v), 270, 80)
-
-    draw_sensor_data()
-    screen.blit(SENSOR_DISPLAY, SENSOR_DISPLAY_POS)
+    draw_mapa()
 
     pg.display.flip()
     dt = clock.tick(60) / 1000
